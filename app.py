@@ -6,12 +6,16 @@ from docx import Document
 from io import BytesIO
 import requests
 from streamlit_lottie import st_lottie
+import json
+import os
+from datetime import datetime
 
 # ==============================================================================
-# 1. إعدادات الصفحة
+# 1. إعدادات الصفحة والتصميم
 # ==============================================================================
-st.set_page_config(page_title="منصة جدوى | Jadwa", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Jadwa Pro | جدوى برو", page_icon="💎", layout="wide")
 
+# دالة لتحميل الأنيميشن
 def load_lottieurl(url: str):
     try:
         r = requests.get(url)
@@ -19,156 +23,234 @@ def load_lottieurl(url: str):
         return r.json()
     except: return None
 
-# أنيميشن (روبوت ومستندات)
-lottie_analyzing = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json")
+lottie_loading = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_qp1q7mct.json")
+lottie_money = load_lottieurl("https://assets2.lottiefiles.com/packages/lf20_tij7s3.json")
 
-# ==============================================================================
-# 2. التصميم (THEME FIX) - حل مشكلة الألوان
-# ==============================================================================
+# CSS لتصميم لوحة تحكم وتصحيح الألوان
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap');
 
-    /* 1. إجبار الخلفية على اللون الداكن */
+    /* الإعدادات العامة */
     .stApp {
         background-color: #0E1117;
         color: #FAFAFA;
         font-family: 'Tajawal', sans-serif;
     }
-
-    /* 2. تصحيح ألوان النصوص */
-    h1, h2, h3, h4, h5, h6, p, div, span, label {
-        color: #FAFAFA !important;
+    
+    h1, h2, h3, p, div, span {
         font-family: 'Tajawal', sans-serif !important;
         direction: rtl;
         text-align: right;
     }
 
-    /* 3. تصميم البطاقات (Cards) بلون رمادي غامق */
-    .custom-card {
-        background-color: #262730;
-        border: 1px solid #3E404D;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        margin-bottom: 20px;
-    }
-
-    /* 4. حقول الإدخال (Inputs) */
-    .stTextInput>div>div>input, .stSelectbox>div>div>div, .stNumberInput>div>div>input {
-        background-color: #0E1117;
-        color: white;
-        border: 1px solid #4B4B4B;
-        border-radius: 8px;
-    }
-
-    /* 5. الأزرار */
-    .stButton>button {
-        background: linear-gradient(45deg, #FF4B4B, #FF0000);
-        color: white !important;
-        border: none;
+    /* بطاقات SWOT */
+    .swot-card {
+        padding: 20px;
         border-radius: 10px;
-        padding: 10px 20px;
-        font-weight: bold;
-        width: 100%;
-        transition: 0.3s;
+        color: white;
+        margin-bottom: 10px;
+        height: 100%;
     }
-    .stButton>button:hover {
-        transform: scale(1.02);
+    .strength { background-color: #2ecc71; }
+    .weakness { background-color: #e74c3c; }
+    .opportunity { background-color: #3498db; }
+    .threat { background-color: #f1c40f; color: black !important; }
+
+    /* تحسين الجداول */
+    .dataframe {
+        direction: rtl;
+        width: 100%; 
     }
-    
-    /* إخفاء القوائم العلوية */
-    header {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
 
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. واجهة المستخدم
+# 2. نظام حفظ البيانات (Data Collection) 📊
+# ==============================================================================
+DATA_FILE = "users_data.csv"
+
+def save_user_data(project, city, capital):
+    """حفظ بيانات المشروع في ملف CSV محلي"""
+    new_data = pd.DataFrame({
+        "Date": [datetime.now().strftime("%Y-%m-%d %H:%M")],
+        "Project": [project],
+        "City": [city],
+        "Capital": [capital]
+    })
+    
+    if not os.path.exists(DATA_FILE):
+        new_data.to_csv(DATA_FILE, index=False)
+    else:
+        new_data.to_csv(DATA_FILE, mode='a', header=False, index=False)
+
+# ==============================================================================
+# 3. الواجهة الجانبية (Sidebar)
+# ==============================================================================
+with st.sidebar:
+    st.title("💎 جدوى برو")
+    st.markdown("---")
+    
+    project_type = st.text_input("💡 فكرة المشروع", "متجر عطور إلكتروني")
+    city = st.selectbox("📍 المدينة", ["الرياض", "جدة", "الدمام", "مكة", "المدينة", "القصيم", "دبي", "أخرى"])
+    capital = st.number_input("💰 رأس المال (ريال)", value=50000, step=5000)
+    details = st.text_area("📝 تفاصيل إضافية")
+    
+    st.markdown("---")
+    generate_btn = st.button("🚀 تحليل شامل (AI)")
+    
+    # منطقة الادمن (لتحميل بيانات العملاء)
+    with st.expander("🔒 منطقة الإدارة"):
+        admin_pass = st.text_input("كود المدير", type="password")
+        if admin_pass == "1234": # يمكنك تغيير كلمة السر
+            if os.path.exists(DATA_FILE):
+                df = pd.read_csv(DATA_FILE)
+                st.dataframe(df)
+                st.download_button("📥 تحميل بيانات العملاء", df.to_csv().encode('utf-8'), "clients.csv")
+            else:
+                st.write("لا توجد بيانات بعد.")
+
+# ==============================================================================
+# 4. المنطق الرئيسي (Main Logic)
 # ==============================================================================
 
 # الهيدر
-col1, col2 = st.columns([1, 8])
+col1, col2 = st.columns([1, 5])
 with col2:
-    st.markdown("<h1>📊 منصة جدوى الذكية</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 1.1em; opacity: 0.8;'>اصنع دراسة جدوى كاملة لمشروعك في ثوانٍ بالذكاء الاصطناعي</p>", unsafe_allow_html=True)
+    st.title(f"تحليل مشروع: {project_type}")
+    st.caption(f"دراسة جدوى ذكية للسوق في {city}")
 
-# المدخلات (داخل كارد)
-st.markdown('<div class="custom-card">', unsafe_allow_html=True)
-c1, c2 = st.columns(2)
-with c1:
-    project_type = st.text_input("💡 فكرة المشروع", placeholder="مطعم، تطبيق، ورشة...")
-    city = st.selectbox("📍 المدينة", ["الرياض", "جدة", "الدمام", "أخرى"])
-with c2:
-    capital = st.number_input("💰 رأس المال (ريال)", value=50000, step=1000)
-    details = st.text_input("📝 تفاصيل إضافية", placeholder="جمهور مستهدف، موقع مميز...")
+if generate_btn:
+    # جلب المفتاح من الأسرار
+    try:
+        GEMINI_KEY = st.secrets["GEMINI_KEY"]
+    except:
+        st.error("⚠️ الرجاء وضع مفتاح API في الـ Secrets")
+        st.stop()
 
-st.markdown("<br>", unsafe_allow_html=True)
-btn = st.button("🚀 إنشاء الدراسة الآن")
-st.markdown('</div>', unsafe_allow_html=True)
+    # حفظ البيانات (تجميع الـ Leads)
+    save_user_data(project_type, city, capital)
 
+    # عرض التحميل
+    with st.container():
+        c1, c2, c3 = st.columns([1,2,1])
+        with c2:
+            st_lottie(lottie_loading, height=200)
+            st.info("جاري استخراج البيانات المالية وتحليل السوق...")
 
-# ==============================================================================
-# 4. المنطق (Logic)
-# ==============================================================================
-# بدلاً من وضع المفتاح هنا، نجعله يقرأ من خزنة السيرفر
-try:
-    GEMINI_KEY = st.secrets["GEMINI_KEY"]
-except:
-    GEMINI_KEY = "ضع_مفتاحك_هنا_فقط_للتجربة_على_جهازك_وليس_للرفع"
+    try:
+        client = genai.Client(api_key=GEMINI_KEY)
+        
+        # ---------------------------------------------------------
+        # الطلب الأول: الدراسة النصية + تحليل SWOT
+        # ---------------------------------------------------------
+        prompt_text = (
+            f"اكتب دراسة جدوى لمشروع {project_type} في {city} برأس مال {capital}. "
+            "التنسيق المطلوب:\n"
+            "1. ابدأ بملخص تنفيذي.\n"
+            "2. ثم اكتب فاصل '###SWOT###'.\n"
+            "3. ثم اكتب تحليل SWOT في 4 نقاط قصيرة جداً (نقطة لكل سطر): القوة، الضعف، الفرص، التهديدات.\n"
+            "4. ثم اكتب فاصل '###PLAN###'.\n"
+            "5. ثم اكتب الخطة التشغيلية والتسويقية."
+        )
+        
+        response_text = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_text)
+        full_text = response_text.text
+        
+        # معالجة النصوص وتقسيمها
+        parts = full_text.split("###SWOT###")
+        summary_section = parts[0]
+        remaining = parts[1] if len(parts) > 1 else ""
+        
+        parts2 = remaining.split("###PLAN###")
+        swot_section = parts2[0] if len(parts2) > 0 else ""
+        plan_section = parts2[1] if len(parts2) > 1 else ""
 
-if btn:
-    if not GEMINI_KEY or "ضع_مفتاح" in GEMINI_KEY:
-        st.error("⚠️ ضع مفتاح API")
-    else:
-        # عرض الأنيميشن
-        if lottie_analyzing:
-            st_lottie(lottie_analyzing, height=150, key="loading")
-        else:
-            st.info("جاري التحليل...")
+        # ---------------------------------------------------------
+        # الطلب الثاني: البيانات المالية (JSON) - لعمل شارت حقيقي
+        # ---------------------------------------------------------
+        prompt_json = (
+            f"لمشروع {project_type} برأس مال {capital}. "
+            "أعطني توقعات مالية لـ 3 سنوات بصيغة JSON فقط. "
+            "الشكل المطلوب: "
+            '{ "years": ["2025", "2026", "2027"], "revenue": [100, 200, 300], "profit": [10, 50, 90] } '
+            "لا تكتب أي نص آخر غير كود JSON."
+        )
+        response_json = client.models.generate_content(model='gemini-2.5-flash', contents=prompt_json)
+        
+        # تنظيف الـ JSON
+        json_str = response_json.text.replace("```json", "").replace("```", "").strip()
+        financial_data = json.loads(json_str)
 
-        try:
-            client = genai.Client(api_key=GEMINI_KEY)
+        # =========================================================
+        # عرض النتائج (Dashboard)
+        # =========================================================
+        st.success("✅ تم الانتهاء من الدراسة!")
+        
+        tab1, tab2, tab3, tab4 = st.tabs(["📄 الملخص", "⚖️ تحليل SWOT", "💰 الماليات", "⚙️ الخطة"])
+
+        with tab1:
+            st.markdown(summary_section)
+
+        with tab2:
+            st.subheader("تحليل نقاط القوة والضعف")
+            # محاولة بسيطة لاستخراج نقاط SWOT من النص
+            swot_lines = [line for line in swot_section.split('\n') if line.strip()]
             
-            # الطلب
-            prompt = (
-                f"اكتب دراسة جدوى لمشروع: {project_type} في {city} برأس مال {capital}. "
-                "افصل الأقسام بكلمة '###'. "
-                "1. ملخص. 2. مالي. 3. تشغيل وتسويق."
-            )
-            response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-            txt = response.text
-            
-            # تقسيم النص
-            parts = txt.split("###")
-            p1 = parts[0] if len(parts)>0 else txt
-            p2 = parts[1] if len(parts)>1 else ""
-            p3 = parts[2] if len(parts)>2 else ""
+            sc1, sc2 = st.columns(2)
+            with sc1:
+                st.markdown(f'<div class="swot-card strength"><h4>💪 نقاط القوة</h4><p>{swot_lines[0] if len(swot_lines)>0 else "مشروع واعد"}</p></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="swot-card weakness"><h4>⚠️ نقاط الضعف</h4><p>{swot_lines[1] if len(swot_lines)>1 else "يحتاج تسويق قوي"}</p></div>', unsafe_allow_html=True)
+            with sc2:
+                st.markdown(f'<div class="swot-card opportunity"><h4>🌟 الفرص</h4><p>{swot_lines[2] if len(swot_lines)>2 else "نمو السوق السعودي"}</p></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="swot-card threat"><h4>🛡️ التهديدات</h4><p>{swot_lines[3] if len(swot_lines)>3 else "المنافسة الشديدة"}</p></div>', unsafe_allow_html=True)
 
-            st.success("✅ تم الانتهاء!")
+        with tab3:
+            col_fin1, col_fin2 = st.columns([2, 1])
+            with col_fin1:
+                # رسم بياني حقيقي من بيانات Gemini
+                chart_df = pd.DataFrame({
+                    "السنة": financial_data.get("years", ["1", "2", "3"]),
+                    "الإيرادات": financial_data.get("revenue", [0,0,0]),
+                    "صافي الربح": financial_data.get("profit", [0,0,0])
+                })
+                st.bar_chart(chart_df.set_index("السنة"))
             
-            # التبويبات
-            t1, t2, t3 = st.tabs(["نظرة عامة", "المالية", "الخطة"])
-            
-            with t1:
-                st.markdown(p1)
-            with t2:
-                # رسم بياني
-                chart_data = pd.DataFrame({'Year': ['2025', '2026', '2027'], 'Profit': [capital*0.1, capital*0.4, capital*0.8]})
-                st.bar_chart(chart_data.set_index('Year'))
-                st.markdown(p2)
-            with t3:
-                st.markdown(p3)
+            with col_fin2:
+                st_lottie(lottie_money, height=150)
+                total_profit = sum(financial_data.get("profit", []))
+                st.metric("إجمالي الربح (3 سنوات)", f"{total_profit:,} SAR")
+                roi = round((total_profit / capital) * 100, 1)
+                st.metric("العائد على الاستثمار ROI", f"{roi}%")
 
-            # ملف الوورد
-            doc = Document()
-            doc.add_paragraph(txt)
-            buf = BytesIO()
-            doc.save(buf)
-            buf.seek(0)
-            
-            st.download_button("📥 تحميل الدراسة (Word)", buf, "study.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        with tab4:
+            st.markdown(plan_section)
 
-        except Exception as e:
-            st.error(f"خطأ: {e}")
+        # ---------------------------------------------------------
+        # إنشاء ملف Word
+        # ---------------------------------------------------------
+        doc = Document()
+        doc.add_heading(f'دراسة جدوى: {project_type}', 0)
+        doc.add_heading('الملخص التنفيذي', level=1)
+        doc.add_paragraph(summary_section)
+        doc.add_heading('تحليل SWOT', level=1)
+        doc.add_paragraph(swot_section)
+        doc.add_heading('الخطة التشغيلية', level=1)
+        doc.add_paragraph(plan_section)
+        
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        st.markdown("---")
+        st.download_button(
+            label="📥 تحميل الدراسة كاملة (Word Docx)",
+            data=buffer,
+            file_name=f"Jadwa_{project_type}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True
+        )
+
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء التحليل: {e}")
