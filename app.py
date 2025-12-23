@@ -22,22 +22,24 @@ def load_lottieurl(url: str):
         return r.json()
     except: return None
 
-# تحميل أنيميشنز
+# تحميل الأنيميشن
 lottie_robot = load_lottieurl("https://lottie.host/5b632675-5735-4d37-8898-33306db02b70/3k8l9z6j7a.json")
 lottie_processing = load_lottieurl("https://lottie.host/98c2e061-0027-4c3e-b762-12711827453d/k1Y5g1o5mF.json")
 
 # ==============================================================================
-# 2. حقن CSS (التصميم الزجاجي) 🎨
+# 2. تصميم CSS (Glassmorphism & Colors)
 # ==============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
 
+    /* خلفية الفضاء */
     .stApp {
         background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
         font-family: 'Cairo', sans-serif;
     }
 
+    /* النصوص */
     h1, h2, h3, h4, p, div, span, label {
         font-family: 'Cairo', sans-serif !important;
         direction: rtl;
@@ -45,6 +47,7 @@ st.markdown("""
         color: white !important;
     }
 
+    /* الكروت الزجاجية */
     .glass-card {
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
@@ -56,6 +59,7 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
+    /* الحقول */
     .stTextInput>div>div>input, .stSelectbox>div>div>div, .stNumberInput>div>div>input, .stTextArea>div>div>textarea {
         background-color: rgba(255, 255, 255, 0.1) !important;
         color: white !important;
@@ -63,6 +67,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
     }
 
+    /* الأزرار */
     .stButton>button {
         background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
         color: white;
@@ -76,6 +81,7 @@ st.markdown("""
     }
     .stButton>button:hover { transform: translateY(-3px); }
 
+    /* ألوان SWOT */
     .swot-box {
         padding: 20px;
         border-radius: 15px;
@@ -89,7 +95,6 @@ st.markdown("""
     .t-yellow { background: linear-gradient(45deg, #f7971e, #ffd200); color: black !important; }
 
     #MainMenu {visibility: hidden;} header {visibility: hidden;}
-    
 </style>
 """, unsafe_allow_html=True)
 
@@ -104,7 +109,7 @@ with col_hero2:
     if lottie_robot: st_lottie(lottie_robot, height=250, key="hero_anim")
 
 # ==============================================================================
-# 4. منطقة الإدخال
+# 4. المدخلات
 # ==============================================================================
 st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
 c1, c2, c3 = st.columns([1, 1, 1])
@@ -117,42 +122,10 @@ generate_btn = st.button("✨ ابدأ التحليل السحري")
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. المنطق (مع تصحيح اسم الموديل) ✅
+# 5. المنطق (مع إصلاح الخطأ السابق)
 # ==============================================================================
 if generate_btn:
     try:
         GEMINI_KEY = st.secrets["GEMINI_KEY"]
     except:
-        st.error("⚠️ ضع مفتاح API في Secrets")
-        st.stop()
-
-    if not project_type:
-        st.warning("⚠️ اكتب اسم المشروع")
-    else:
-        with st.container():
-            col_l1, col_l2, col_l3 = st.columns([1,2,1])
-            with col_l2:
-                if lottie_processing: st_lottie(lottie_processing, height=150, key="loading")
-                st.info("جاري التحليل... (قد يستغرق 10 ثوانٍ)")
-
-        try:
-            client = genai.Client(api_key=GEMINI_KEY)
-            
-            # 🔴 التصحيح هنا: استخدام الاسم الرسمي للإصدار
-            # إذا فشل هذا، جرب 'gemini-1.5-pro' أو 'gemini-1.0-pro'
-            model_id = 'gemini-1.5-flash-001' 
-            
-            prompt = (
-                f"أنت خبير اقتصادي. حلل مشروع {project_type} في {city} برأس مال {capital}. "
-                "المطلوب: إرجاع النتيجة بصيغة JSON Valid فقط (بدون ```json). "
-                "الهيكل:\n"
-                "{\n"
-                '  "summary": "ملخص تنفيذي...",\n'
-                '  "swot": {"s": "قوة", "w": "ضعف", "o": "فرصة", "t": "تهديد"},\n'
-                '  "financials": {"years": ["2025", "2026", "2027"], "revenue": [10, 20, 30], "profit": [1, 5, 10]},\n'
-                '  "plan": "خطة العمل..."\n'
-                "}"
-            )
-
-            response = client.models.generate_content(model=model_id, contents=prompt)
-            clean_json
+        st.error
