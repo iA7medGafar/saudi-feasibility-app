@@ -1,5 +1,5 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai  # المكتبة المستقرة
 import pandas as pd
 import time
 import requests
@@ -89,7 +89,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. وظائف المساعدة (مع نظام الإصلاح الذاتي) 🛠️
+# 2. وظائف المساعدة (المكتبة المستقرة)
 # ==============================================================================
 
 @st.cache_data
@@ -100,47 +100,33 @@ def load_lottie(url: str):
         return r.json()
     except: return None
 
-def get_gemini_client():
-    try: return st.secrets["GEMINI_KEY"]
-    except: return None
+def configure_gemini():
+    try:
+        api_key = st.secrets["GEMINI_KEY"]
+        genai.configure(api_key=api_key)
+        return True
+    except:
+        return False
 
-def generate_with_fallback(client, prompt):
+def generate_smart_content(prompt):
     """
-    نظام ذكي يجرب عدة موديلات حتى ينجح واحد منها.
-    يحل مشكلة 404 ومشكلة 429 تلقائياً.
+    استخدام المكتبة المستقرة مع موديل 1.5 فلاش
     """
-    # قائمة الموديلات التي سنحاول استخدامها بالترتيب
-    models_to_try = [
-        'gemini-1.5-flash-latest', # المحاولة الأولى: أحدث نسخة
-        'gemini-1.5-flash',        # المحاولة الثانية: الاسم المختصر
-        'gemini-1.5-flash-001',    # المحاولة الثالثة: الإصدار الرقمي
-        'gemini-pro'               # المحاولة الأخيرة: الموديل القديم المضمون
-    ]
+    # قائمة الموديلات الآمنة
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
-    last_error = None
-
-    for model in models_to_try:
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        # إذا فشل فلاش، جرب برو
         try:
-            # محاولة الاتصال
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt
-            )
-            return response.text # نجح! أرجع النص
-            
-        except Exception as e:
-            last_error = e
-            error_str = str(e)
-            
-            # إذا كان الخطأ "غير موجود" أو "مشغول"، جرب الموديل التالي
-            if "404" in error_str or "429" in error_str:
-                time.sleep(1) # استراحة قصيرة قبل المحاولة التالية
-                continue
-            else:
-                raise e # خطأ آخر غير متوقع
-
-    # إذا فشلت كل الموديلات
-    raise Exception(f"فشلت جميع المحاولات. الخطأ الأخير: {last_error}")
+            time.sleep(2)
+            model_backup = genai.GenerativeModel('gemini-pro')
+            response = model_backup.generate_content(prompt)
+            return response.text
+        except:
+            raise e
 
 def create_professional_doc(data):
     doc = Document()
@@ -206,9 +192,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # ==============================================================================
 
 if analyze_btn:
-    api_key = get_gemini_client()
-    
-    if not api_key:
+    if not configure_gemini():
         st.error("⚠️ مفتاح API غير موجود في Secrets.")
     elif not project_name:
         st.warning("⚠️ يرجى إدخال اسم المشروع.")
@@ -216,9 +200,7 @@ if analyze_btn:
         status_container = st.status("جاري الاتصال بالمستشار الذكي...", expanded=True)
         
         try:
-            client = genai.Client(api_key=api_key)
-            
-            status_container.write("🔍 جاري البحث عن أفضل نموذج متاح...")
+            status_container.write("🔍 جاري تحليل السوق باستخدام Gemini 1.5 Flash...")
             if lottie_loading: 
                 with st.columns([1,2,1])[1]: st_lottie(lottie_loading, height=120, key="proc")
             
@@ -240,8 +222,8 @@ if analyze_btn:
             }}
             """
 
-            # استخدام دالة "الإصلاح الذاتي" الجديدة
-            raw_response = generate_with_fallback(client, prompt)
+            # استخدام الدالة المستقرة
+            raw_response = generate_smart_content(prompt)
             
             status_container.write("📊 معالجة البيانات وبناء التقرير...")
             
