@@ -1,0 +1,6 @@
+streamlit
+google-genai
+pandas
+python-docx
+requests
+streamlit-lottie
